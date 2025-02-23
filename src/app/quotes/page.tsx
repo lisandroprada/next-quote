@@ -1,7 +1,42 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, Title, TextInput, Button, Select, SelectItem, NumberInput } from "@tremor/react";
+import { useState, useEffect, useCallback } from 'react';
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Home,
+  Building2,
+  Building,
+  Palmtree,
+  FileQuestion,
+  Calendar,
+  DollarSign,
+  CheckCircle2,
+  XCircle,
+  FileEdit,
+  Send,
+  Trash2
+} from "lucide-react";
 
 interface Client {
   _id: string;
@@ -28,6 +63,28 @@ interface Quote {
   notes?: string;
 }
 
+const propertyTypes = [
+  { value: 'house', label: 'House', icon: Home },
+  { value: 'apartment', label: 'Apartment', icon: Building2 },
+  { value: 'office', label: 'Office', icon: Building },
+  { value: 'land', label: 'Land', icon: Palmtree },
+  { value: 'other', label: 'Other', icon: FileQuestion },
+];
+
+const propertyConditions = [
+  { value: 'excellent', label: 'Excellent' },
+  { value: 'good', label: 'Good' },
+  { value: 'fair', label: 'Fair' },
+  { value: 'needs_work', label: 'Needs Work' },
+];
+
+const statusColors: Record<Quote['status'], "default" | "secondary" | "destructive" | "outline"> = {
+  draft: 'default',
+  sent: 'secondary',
+  accepted: 'outline',
+  rejected: 'destructive',
+};
+
 export default function QuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -46,39 +103,35 @@ export default function QuotesPage() {
     notes: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchQuotes();
-    fetchClients();
-  }, []);
-
-  const fetchQuotes = async () => {
+  const fetchQuotes = useCallback(async () => {
     try {
       const response = await fetch('/api/quotes');
       const data = await response.json();
       setQuotes(data);
     } catch (error) {
       console.error('Error fetching quotes:', error);
-      setError('Error loading quotes');
     }
-  };
+  }, []);
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       const response = await fetch('/api/clients');
       const data = await response.json();
       setClients(data);
     } catch (error) {
       console.error('Error fetching clients:', error);
-      setError('Error loading clients');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchQuotes();
+    fetchClients();
+  }, [fetchQuotes, fetchClients]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
 
     try {
       const response = await fetch('/api/quotes', {
@@ -108,9 +161,9 @@ export default function QuotesPage() {
         notes: ''
       });
       fetchQuotes();
+      console.log('Quote created successfully');
     } catch (error) {
       console.error('Error:', error);
-      setError('Error creating quote');
     } finally {
       setIsLoading(false);
     }
@@ -129,257 +182,295 @@ export default function QuotesPage() {
       }
 
       fetchQuotes();
+      console.log('Quote deleted successfully');
     } catch (error) {
       console.error('Error:', error);
-      setError('Error deleting quote');
     }
   };
 
-  const propertyTypes = [
-    { value: 'house', label: 'House' },
-    { value: 'apartment', label: 'Apartment' },
-    { value: 'office', label: 'Office' },
-    { value: 'land', label: 'Land' },
-    { value: 'other', label: 'Other' }
-  ];
-
-  const conditions = [
-    { value: 'excellent', label: 'Excellent' },
-    { value: 'good', label: 'Good' },
-    { value: 'fair', label: 'Fair' },
-    { value: 'needs_work', label: 'Needs Work' }
-  ];
+  const getStatusIcon = (status: Quote['status']) => {
+    switch (status) {
+      case 'draft':
+        return <FileEdit className="h-4 w-4" />;
+      case 'sent':
+        return <Send className="h-4 w-4" />;
+      case 'accepted':
+        return <CheckCircle2 className="h-4 w-4" />;
+      case 'rejected':
+        return <XCircle className="h-4 w-4" />;
+    }
+  };
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <Title>Quotes Management</Title>
-
-        {/* Add Quote Form */}
-        <Card className="bg-white p-6">
-          <h2 className="text-xl font-semibold mb-6">Create New Quote</h2>
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Client Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-700">Client Information</h3>
-              <div className="w-full">
-                <Select
-                  value={formData.client}
-                  onValueChange={(value) => setFormData({ ...formData, client: value })}
-                  placeholder="Select Client"
-                  required
-                >
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Quotes</h2>
+      </div>
+      <Separator />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-3 p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="client">Client</Label>
+              <Select
+                value={formData.client}
+                onValueChange={(value) => setFormData({ ...formData, client: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a client" />
+                </SelectTrigger>
+                <SelectContent>
                   {clients.map((client) => (
                     <SelectItem key={client._id} value={client._id}>
                       {client.name}
                     </SelectItem>
                   ))}
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Property Details Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-700">Property Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextInput
-                  placeholder="Property Address"
-                  value={formData.propertyDetails.address}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    propertyDetails: { ...formData.propertyDetails, address: e.target.value }
-                  })}
-                  required
-                />
-
-                <Select
-                  value={formData.propertyDetails.type}
-                  onValueChange={(value) => setFormData({
-                    ...formData,
-                    propertyDetails: { ...formData.propertyDetails, type: value as PropertyDetails['type'] }
-                  })}
-                  placeholder="Property Type"
-                  required
-                >
-                  {propertyTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-
-                <div className="relative">
-                  <NumberInput
-                    placeholder="Size (m²)"
-                    value={formData.propertyDetails.size}
-                    onValueChange={(value) => setFormData({
-                      ...formData,
-                      propertyDetails: { ...formData.propertyDetails, size: value }
-                    })}
+            <div className="space-y-2">
+              <Label>Property Details</Label>
+              <Card className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    placeholder="Property address"
+                    value={formData.propertyDetails.address}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        propertyDetails: { ...formData.propertyDetails, address: e.target.value },
+                      })
+                    }
                     required
                   />
-                  <span className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500">m²</span>
                 </div>
 
-                <Select
-                  value={formData.propertyDetails.condition}
-                  onValueChange={(value) => setFormData({
-                    ...formData,
-                    propertyDetails: { ...formData.propertyDetails, condition: value as PropertyDetails['condition'] }
-                  })}
-                  placeholder="Property Condition"
-                  required
-                >
-                  {conditions.map((condition) => (
-                    <SelectItem key={condition.value} value={condition.value}>
-                      {condition.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-
-                <div className="relative">
-                  <NumberInput
-                    placeholder="Bedrooms"
-                    value={formData.propertyDetails.bedrooms}
-                    onValueChange={(value) => setFormData({
-                      ...formData,
-                      propertyDetails: { ...formData.propertyDetails, bedrooms: value }
-                    })}
-                  />
-                  <span className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500">rooms</span>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Type</Label>
+                  <Select
+                    value={formData.propertyDetails.type}
+                    onValueChange={(value: 'house' | 'apartment' | 'office' | 'land' | 'other') =>
+                      setFormData({
+                        ...formData,
+                        propertyDetails: { ...formData.propertyDetails, type: value },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {propertyTypes.map(({ value, label, icon: Icon }) => (
+                        <SelectItem key={value} value={value}>
+                          <div className="flex items-center space-x-2">
+                            <Icon className="h-4 w-4" />
+                            <span>{label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="relative">
-                  <NumberInput
-                    placeholder="Bathrooms"
-                    value={formData.propertyDetails.bathrooms}
-                    onValueChange={(value) => setFormData({
-                      ...formData,
-                      propertyDetails: { ...formData.propertyDetails, bathrooms: value }
-                    })}
-                  />
-                  <span className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500">baths</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="size">Size (m²)</Label>
+                    <Input
+                      id="size"
+                      type="number"
+                      min="0"
+                      value={formData.propertyDetails.size}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          propertyDetails: {
+                            ...formData.propertyDetails,
+                            size: parseInt(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="condition">Condition</Label>
+                    <Select
+                      value={formData.propertyDetails.condition}
+                      onValueChange={(value: 'excellent' | 'good' | 'fair' | 'needs_work') =>
+                        setFormData({
+                          ...formData,
+                          propertyDetails: { ...formData.propertyDetails, condition: value },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {propertyConditions.map(({ value, label }) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bedrooms">Bedrooms</Label>
+                    <Input
+                      id="bedrooms"
+                      type="number"
+                      min="0"
+                      value={formData.propertyDetails.bedrooms}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          propertyDetails: {
+                            ...formData.propertyDetails,
+                            bedrooms: parseInt(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bathrooms">Bathrooms</Label>
+                    <Input
+                      id="bathrooms"
+                      type="number"
+                      min="0"
+                      value={formData.propertyDetails.bathrooms}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          propertyDetails: {
+                            ...formData.propertyDetails,
+                            bathrooms: parseInt(e.target.value) || 0,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+              </Card>
             </div>
 
-            {/* Quote Details Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-700">Quote Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="totalAmount">Total Amount</Label>
                 <div className="relative">
-                  <NumberInput
-                    placeholder="Total Amount"
+                  <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="totalAmount"
+                    type="number"
+                    min="0"
+                    className="pl-8"
                     value={formData.totalAmount}
-                    onValueChange={(value) => setFormData({ ...formData, totalAmount: value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, totalAmount: parseInt(e.target.value) || 0 })
+                    }
                     required
                   />
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
                 </div>
+              </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="validUntil">Valid Until</Label>
                 <div className="relative">
-                  <input
+                  <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="validUntil"
                     type="date"
+                    className="pl-8"
                     value={formData.validUntil}
                     onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                     required
-                  />
-                  <label className="absolute -top-2 left-2 bg-white px-1 text-xs text-gray-500">Valid Until</label>
-                </div>
-
-                <div className="col-span-2">
-                  <TextInput
-                    placeholder="Additional Notes"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   />
                 </div>
               </div>
             </div>
 
-            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-            
-            <div className="flex justify-end pt-4">
-              <Button
-                type="submit"
-                loading={isLoading}
-                className="bg-primary-600 hover:bg-primary-700"
-              >
-                Create Quote
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Additional notes..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
             </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Quote"}
+            </Button>
           </form>
         </Card>
 
-        {/* Quotes List */}
-        <Card className="bg-white">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Property
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Valid Until
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+        <Card className="col-span-4 p-6">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {quotes.map((quote) => (
-                  <tr key={quote._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{quote.client.name}</div>
-                      <div className="text-sm text-gray-500">{quote.client.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{quote.propertyDetails.address}</div>
-                      <div className="text-sm text-gray-500">
-                        {quote.propertyDetails.size}m² • {quote.propertyDetails.bedrooms} beds • {quote.propertyDetails.bathrooms} baths
+                  <TableRow key={quote._id}>
+                    <TableCell className="font-medium">{quote.client.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-2">
+                          {(() => {
+                            const IconComponent = propertyTypes.find(t => t.value === quote.propertyDetails.type)?.icon;
+                            return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+                          })()}
+                          <span className="text-sm">
+                            {quote.propertyDetails.address}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {quote.propertyDetails.size}m² • {quote.propertyDetails.bedrooms} bed • {quote.propertyDetails.bathrooms} bath
+                        </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        ${quote.totalAmount.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <DollarSign className="h-4 w-4" />
+                        <span>{quote.totalAmount.toLocaleString()}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${quote.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                          quote.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          quote.status === 'sent' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'}`}>
-                        {quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(quote.validUntil).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusColors[quote.status]} className="flex w-fit items-center space-x-1">
+                        {getStatusIcon(quote.status)}
+                        <span>{quote.status.charAt(0).toUpperCase() + quote.status.slice(1)}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDelete(quote._id)}
-                        className="text-red-600 hover:text-red-900"
                       >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </Card>
       </div>

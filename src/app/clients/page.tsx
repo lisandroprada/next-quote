@@ -1,7 +1,20 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, Title, TextInput, Button } from "@tremor/react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { Phone, Mail, MapPin, Trash2 } from "lucide-react";
 
 interface Client {
   _id: string;
@@ -27,7 +40,6 @@ export default function ClientsPage() {
     address: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchClients();
@@ -40,14 +52,13 @@ export default function ClientsPage() {
       setClients(data);
     } catch (error) {
       console.error('Error fetching clients:', error);
-      setError('Error loading clients');
+      console.log('Could not load clients. Please try again.');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
 
     try {
       const response = await fetch('/api/clients', {
@@ -58,16 +69,25 @@ export default function ClientsPage() {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Error creating client');
+        throw new Error(data.message || 'Error creating client');
       }
 
-      // Reset form and refresh clients list
-      setFormData({ name: '', email: '', phone: '', address: '' });
-      fetchClients();
+      // Limpiar el formulario solo si la creación fue exitosa
+      setFormData({ 
+        name: '', 
+        email: '', 
+        phone: '', 
+        address: '' 
+      });
+      
+      // Actualizar la lista de clientes
+      await fetchClients();
+      console.log('Client created successfully:', data);
     } catch (error) {
-      console.error('Error:', error);
-      setError('Error creating client');
+      console.error('Error creating client:', error);
     } finally {
       setIsLoading(false);
     }
@@ -86,96 +106,113 @@ export default function ClientsPage() {
       }
 
       fetchClients();
+      console.log('Client deleted successfully');
     } catch (error) {
-      console.error('Error:', error);
-      setError('Error deleting client');
+      console.error('Error deleting client:', error);
     }
   };
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <Title>Clients Management</Title>
-
-        {/* Add Client Form */}
-        <Card className="bg-white p-6">
-          <h2 className="text-xl font-semibold mb-4">Add New Client</h2>
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Clients</h2>
+      </div>
+      <Separator />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-3 p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <TextInput
-                placeholder="Name"
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                placeholder="Enter client name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
-              <TextInput
-                placeholder="Email"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 type="email"
+                placeholder="Enter client email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
               />
-              <TextInput
-                placeholder="Phone"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                placeholder="Enter client phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 required
               />
-              <TextInput
-                placeholder="Address"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                placeholder="Enter client address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button type="submit" loading={isLoading}>
-              Add Client
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Client"}
             </Button>
           </form>
         </Card>
 
-        {/* Clients List */}
-        <Card className="bg-white">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Phone
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Address
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+        <Card className="col-span-4 p-6">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {clients.map((client) => (
-                  <tr key={client._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{client.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{client.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{client.phone}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{client.address}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
+                  <TableRow key={client._id}>
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <Mail className="h-4 w-4" />
+                          <span className="text-sm">{client.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4" />
+                          <span className="text-sm">{client.phone}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="h-4 w-4" />
+                        <span className="text-sm">{client.address || 'N/A'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDelete(client._id)}
-                        className="text-red-600 hover:text-red-900"
                       >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </Card>
       </div>

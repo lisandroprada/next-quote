@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import SubmenuDrawer from './SubMenuDrawer'; // Importa el componente SubmenuDrawer
+import SubmenuDrawer from './SubMenuDrawer';
 import {
   HomeIcon,
   Squares2X2Icon,
@@ -61,7 +61,7 @@ function Sidebar({ collapsed = false }: SidebarProps) {
 
   return (
     <aside className={`fixed top-0 left-0 bg-gray-900 h-screen text-gray-300 flex flex-col transform transition-all duration-300
-      ${collapsed ? '-translate-x-full' : 'translate-x-0'} w-28`}>
+      ${collapsed ? '-translate-x-full' : 'translate-x-0'} w-28`} style={{ zIndex: 40 }}>
       <div className="py-8 px-4 flex justify-center items-center border-b border-gray-700">
         <Image
           src="/isotipo-propietas.png"
@@ -88,7 +88,7 @@ function Sidebar({ collapsed = false }: SidebarProps) {
               <Link
                 href={link.href || '#'}
                 className={`flex flex-col items-center p-3 rounded-xl hover:bg-gray-700 transition-all duration-200 w-20
-                  ${pathname === (link.href || '#') ? 'bg-gray-700 text-white scale-110' : ''}`}
+                  ${pathname === link.href ? 'bg-gray-700 text-white scale-110' : ''}`}
               >
                 <link.icon className="h-7 w-7 mb-2" />
                 <span className="text-xs text-center">{link.label}</span>

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SubmenuItem {
   href: string;
@@ -47,43 +48,55 @@ function SubmenuDrawer({ submenuItems, isOpen, onClose, parentLabel }: SubmenuDr
   }, [isOpen, onClose]);
 
   return (
-    <>
+    <AnimatePresence>
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"
-          onClick={onClose}
-        />
+        <motion.div
+          ref={drawerRef}
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: "240px", opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="fixed left-[104px] top-0 h-screen bg-gray-800 border-l border-gray-700 overflow-hidden z-40"
+          style={{
+            boxShadow: "4px 0 15px rgba(0, 0, 0, 0.3)"
+          }}
+        >
+          <div className="h-full flex flex-col w-[240px]">
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="text-lg font-medium text-gray-200">{parentLabel}</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-3 space-y-1">
+                {submenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200
+                        ${isActive 
+                          ? 'bg-gray-700 text-white' 
+                          : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'}`}
+                    >
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="text-sm">{item.label}</span>
+                      {item.badge && (
+                        <span className={`ml-auto text-xs px-2 py-1 rounded-full ${
+                          isActive ? 'bg-gray-600' : 'bg-gray-700'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </motion.div>
       )}
-      <div
-        ref={drawerRef}
-        className={`fixed top-0 left-28 h-screen w-64 bg-gray-900 text-gray-300 shadow-lg z-50 transform transition-all duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'}`}
-      >
-        <div className="p-6 border-b border-gray-700">
-          <h2 className="text-xl font-semibold uppercase text-white">{parentLabel}</h2>
-        </div>
-        <ul className="p-4 space-y-2">
-          {submenuItems.map((sublink) => (
-            <li key={sublink.href}
-                className="transform transition-transform duration-200 hover:scale-105">
-              <Link
-                href={sublink.href}
-                className={`flex items-center space-x-2 w-full p-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors duration-200 
-                  ${pathname === sublink.href ? 'bg-gray-700 text-white font-semibold' : ''}`}
-              >
-                <sublink.icon className="h-5 w-5" />
-                <span>{sublink.label}</span>
-                {sublink.badge && (
-                  <span className="ml-auto px-2 py-0.5 text-xs font-medium rounded-full bg-blue-500 text-white">
-                    {sublink.badge}
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
+    </AnimatePresence>
   );
 }
 
