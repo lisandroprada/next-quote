@@ -62,9 +62,12 @@ export async function PUT(
     const body = await req.json();
     const validatedData = trabajoSchema.partial().parse(body);
 
+    // Await params.id
+    const trabajoId = await params.id;
+
     // Find and update trabajo
     const trabajoActualizado = await Trabajo.findByIdAndUpdate(
-      params.id, 
+      trabajoId, 
       { 
         ...validatedData, 
         updatedAt: new Date() 
@@ -79,24 +82,17 @@ export async function PUT(
     return NextResponse.json(trabajoActualizado, { status: 200 });
   } catch (error: unknown) {
     console.error('Error updating trabajo:', error);
-
+    
+    // More detailed error handling
     if (error instanceof z.ZodError) {
       return NextResponse.json({ 
-        message: 'Validation failed', 
+        message: 'Validation Error', 
         errors: error.errors 
       }, { status: 400 });
     }
 
-    if (error instanceof Error) {
-      return NextResponse.json({ 
-        message: 'Failed to update trabajo', 
-        error: error.message 
-      }, { status: 500 });
-    }
-
     return NextResponse.json({ 
-      message: 'An unexpected error occurred', 
-      error: String(error)
+      message: 'Internal Server Error' 
     }, { status: 500 });
   }
 }

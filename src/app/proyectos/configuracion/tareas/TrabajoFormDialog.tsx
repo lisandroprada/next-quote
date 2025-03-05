@@ -46,6 +46,7 @@ const FIELD_TYPES = [
 const trabajoSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   description: z.string().optional(),
+  status: z.enum(['active', 'archived', 'draft']).default('active'),
   formFields: z.array(z.object({
     name: z.string().min(1, "El nombre del campo es requerido"),
     label: z.string().min(1, "La etiqueta es requerida"),
@@ -59,17 +60,17 @@ const trabajoSchema = z.object({
 type TrabajoFormValues = z.infer<typeof trabajoSchema>;
 
 interface TrabajoFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   trabajo?: Trabajo | null;
-  onSuccess: () => void;
+  open: boolean;
+  onOpenChangeAction: (open: boolean) => void;
+  onSuccessAction: () => Promise<void>;
 }
 
 export function TrabajoFormDialog({ 
-  open, 
-  onOpenChange, 
   trabajo, 
-  onSuccess 
+  open,
+  onOpenChangeAction,
+  onSuccessAction 
 }: TrabajoFormDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -78,12 +79,14 @@ export function TrabajoFormDialog({
     resolver: zodResolver(trabajoSchema),
     defaultValues: trabajo ? {
       name: trabajo.name,
-      description: trabajo.description,
-      formFields: trabajo.formFields || []
+      description: trabajo.description || '',
+      formFields: trabajo.formFields || [],
+      status: trabajo.status || 'active'
     } : {
       name: '',
       description: '',
-      formFields: []
+      formFields: [],
+      status: 'active'
     }
   });
 
@@ -92,18 +95,20 @@ export function TrabajoFormDialog({
     name: 'formFields'
   });
 
-  // Reset form when trabajo changes or dialog opens/closes
+  // Reset form when trabajo or open state changes
   useEffect(() => {
     form.reset(trabajo ? {
       name: trabajo.name,
       description: trabajo.description,
-      formFields: trabajo.formFields || []
+      formFields: trabajo.formFields,
+      status: trabajo.status
     } : {
       name: '',
       description: '',
-      formFields: []
+      formFields: [],
+      status: 'active'
     });
-  }, [trabajo, open]);
+  }, [trabajo, open, form]);
 
   // Form submission handler
   const onSubmit = async (values: TrabajoFormValues) => {
@@ -130,11 +135,34 @@ export function TrabajoFormDialog({
         throw new Error('Error al guardar el trabajo');
       }
 
-      toast.success(trabajo ? 'Trabajo actualizado' : 'Trabajo creado');
-      onSuccess();
-      onOpenChange(false);
+      const responseData = await response.json();
+
+      // Success toast
+      toast.success(trabajo 
+        ? 'Trabajo actualizado correctamente' 
+        : 'Trabajo creado correctamente', {
+        description: `ID: ${responseData._id}`,
+        duration: 3000
+      });
+
+      // Refresh data without closing dialog
+      await onSuccessAction();
+
+      // Update form with returned data if editing existing trabajo
+      if (trabajo) {
+        form.reset({
+          ...values,
+          ...responseData
+        });
+      } else {
+        // Reset form for new trabajo
+        form.reset();
+      }
     } catch (error) {
-      toast.error('No se pudo guardar el trabajo');
+      toast.error('No se pudo guardar el trabajo', {
+        description: error instanceof Error ? error.message : 'Error desconocido',
+        duration: 3000
+      });
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -142,7 +170,7 @@ export function TrabajoFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[800px] w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -313,7 +341,7 @@ export function TrabajoFormDialog({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={() => onOpenChangeAction(false)}
               >
                 Cancelar
               </Button>

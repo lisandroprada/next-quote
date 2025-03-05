@@ -22,17 +22,17 @@ import { Trabajo } from '@/models/trabajos';
 
 interface SortableRowProps {
   trabajo: Trabajo;
-  onEdit: () => void;
-  onDelete: () => void;
-  onDuplicate?: () => void;
+  onEditAction: () => void;
+  onDeleteAction: () => void;
+  onDuplicateAction?: () => void;
   isDuplicateActionEnabled?: boolean;
 }
 
 export function SortableRow({ 
   trabajo, 
-  onEdit, 
-  onDelete, 
-  onDuplicate, 
+  onEditAction, 
+  onDeleteAction, 
+  onDuplicateAction, 
   isDuplicateActionEnabled = false 
 }: SortableRowProps) {
   const {
@@ -61,9 +61,11 @@ export function SortableRow({
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       </TableCell>
+      <TableCell className="font-medium">{trabajo.order}</TableCell>
       <TableCell>{trabajo.name}</TableCell>
       <TableCell>{trabajo.description}</TableCell>
-      <TableCell>
+      <TableCell className="text-center">{trabajo.formFields?.length || 0}</TableCell>
+      <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -71,17 +73,17 @@ export function SortableRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onSelect={onEdit}>
+            <DropdownMenuItem onSelect={onEditAction}>
               <Pencil className="mr-2 h-4 w-4" />
               Editar
             </DropdownMenuItem>
-            {onDuplicate && isDuplicateActionEnabled && (
-              <DropdownMenuItem onSelect={onDuplicate}>
+            {onDuplicateAction && isDuplicateActionEnabled && (
+              <DropdownMenuItem onSelect={onDuplicateAction}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicar
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onSelect={onDelete} className="text-destructive">
+            <DropdownMenuItem onSelect={onDeleteAction} className="text-destructive">
               <Trash2 className="mr-2 h-4 w-4" />
               Eliminar
             </DropdownMenuItem>

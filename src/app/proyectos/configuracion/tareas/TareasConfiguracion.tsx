@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -28,6 +28,9 @@ import {
   restrictToParentElement 
 } from '@dnd-kit/modifiers';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus } from "lucide-react";
 
 import { TrabajoFormDialog } from './TrabajoFormDialog';
 import { SortableRow } from './SortableRow';
@@ -181,6 +184,24 @@ export default function TareasConfiguracion() {
     fetchTrabajos();
   }, []);
 
+  // Calculate dashboard metrics
+  const trabajosMetrics = useMemo(() => ({
+    total: trabajos.length,
+    activeTrabajos: trabajos.filter(t => t.status === 'active').length,
+    archivedTrabajos: trabajos.filter(t => t.status === 'archived').length,
+    draftTrabajos: trabajos.filter(t => t.status === 'draft').length,
+    averageItemsPerTrabajo: trabajos.reduce((sum, trabajo) => 
+      sum + (trabajo.itemCount ?? 0), 0) / trabajos.length || 0
+  }), [trabajos]);
+
+  // Handler for dialog open change
+  const handleDialogOpenChange: (open: boolean) => void = (open) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setSelectedTrabajo(null);
+    }
+  };
+
   // Render loading state
   if (isLoading) {
     return (
@@ -190,66 +211,105 @@ export default function TareasConfiguracion() {
     );
   }
 
-  // Open dialog for editing
-  const handleEditTrabajo = (trabajo: Trabajo) => {
-    setSelectedTrabajo(trabajo);
-    setIsDialogOpen(true);
-  };
-
-  // Open dialog for creating new trabajo
-  const handleCreateTrabajo = () => {
-    setSelectedTrabajo(null);
-    setIsDialogOpen(true);
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleCreateTrabajo}>
-          Crear Nuevo Trabajo
-        </Button>
-      </div>
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="grid grid-cols-4 gap-6">
+        {/* Metrics Card */}
+        <Card className="col-span-1 bg-white shadow-lg rounded-xl border-none p-6 space-y-4 transform transition-all hover:scale-[1.02]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl font-semibold text-gray-800">Métricas de Trabajos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Total Trabajos</span>
+              <Badge variant="secondary" className="bg-blue-50 text-blue-600 font-medium">
+                {trabajosMetrics.total}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Activos</span>
+              <Badge variant="outline" className="bg-green-50 text-green-600 font-medium">
+                {trabajosMetrics.activeTrabajos}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Archivados</span>
+              <Badge variant="outline" className="bg-gray-50 text-gray-600 font-medium">
+                {trabajosMetrics.archivedTrabajos}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Borradores</span>
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-600 font-medium">
+                {trabajosMetrics.draftTrabajos}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
 
-      <DndContext 
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-      >
-        <SortableContext 
-          items={trabajos.map(trabajo => trabajo._id.toString() as unknown as string)} 
-          strategy={rectSortingStrategy}
-        >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Orden</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {trabajos.map((trabajo) => (
-                <SortableRow 
-                  key={trabajo._id.toString()} 
-                  trabajo={trabajo}
-                  onEdit={() => handleEditTrabajo(trabajo)}
-                  onDelete={() => handleDeleteTrabajo(trabajo._id.toString())}
-                  onDuplicate={() => handleDuplicateTrabajo(trabajo)}
-                  isDuplicateActionEnabled={true}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </SortableContext>
-      </DndContext>
+        {/* Trabajos Table Card */}
+        <Card className="col-span-3 bg-white shadow-lg rounded-xl border-none p-6 space-y-4">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xl font-semibold text-gray-800">Configuración de Trabajos</CardTitle>
+            <Button 
+              onClick={() => {
+                setSelectedTrabajo(null);
+                setIsDialogOpen(true);
+              }} 
+              className="bg-primary hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Nuevo Trabajo
+            </Button>
+          </CardHeader>
+          
+          <CardContent className="p-0">
+            <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            >
+              <SortableContext 
+                items={trabajos.map(trabajo => trabajo._id.toString())} 
+                strategy={rectSortingStrategy}
+              >
+                <Table className="w-full">
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[100px] text-gray-700">Orden</TableHead>
+                      <TableHead className="text-gray-700">Nombre</TableHead>
+                      <TableHead className="text-gray-700">Descripción</TableHead>
+                      <TableHead className="text-center text-gray-700">Campos</TableHead>
+                      <TableHead className="text-right text-gray-700">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {trabajos.map((trabajo) => (
+                      <SortableRow 
+                        key={trabajo._id.toString()} 
+                        trabajo={trabajo} 
+                        onEditAction={() => {
+                          setSelectedTrabajo(trabajo);
+                          setIsDialogOpen(true);
+                        }}
+                        onDeleteAction={() => handleDeleteTrabajo(trabajo._id.toString())}
+                        onDuplicateAction={() => handleDuplicateTrabajo(trabajo)}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </SortableContext>
+            </DndContext>
+          </CardContent>
+        </Card>
+      </div>
 
       <TrabajoFormDialog 
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChangeAction={handleDialogOpenChange}
         trabajo={selectedTrabajo}
-        onSuccess={fetchTrabajos}
+        onSuccessAction={fetchTrabajos}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface FormField {
   name: string;
@@ -10,10 +10,13 @@ export interface FormField {
 }
 
 export interface Trabajo extends Document {
+  _id: Types.ObjectId;
   name: string;
   description: string;
   formFields: FormField[];
   order: number;
+  itemCount?: number;
+  status?: 'active' | 'archived' | 'draft';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +39,12 @@ const TrabajoSchema = new Schema<Trabajo>({
   description: { type: String },
   formFields: { type: [FormFieldSchema], default: [] },
   order: { type: Number, default: 0 },
+  itemCount: { type: Number, default: 0 },
+  status: { 
+    type: String, 
+    enum: ['active', 'archived', 'draft'], 
+    default: 'active' 
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, {
