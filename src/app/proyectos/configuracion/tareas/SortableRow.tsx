@@ -25,9 +25,16 @@ interface SortableRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onDuplicate?: () => void;
+  isDuplicateActionEnabled?: boolean;
 }
 
-export function SortableRow({ trabajo, onEdit, onDelete, onDuplicate }: SortableRowProps) {
+export function SortableRow({ 
+  trabajo, 
+  onEdit, 
+  onDelete, 
+  onDuplicate, 
+  isDuplicateActionEnabled = false 
+}: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -35,7 +42,7 @@ export function SortableRow({ trabajo, onEdit, onDelete, onDuplicate }: Sortable
     transform,
     transition,
     isDragging
-  } = useSortable({ id: trabajo._id });
+  } = useSortable({ id: trabajo._id.toString() });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -48,11 +55,10 @@ export function SortableRow({ trabajo, onEdit, onDelete, onDuplicate }: Sortable
       <TableCell>
         <div 
           {...attributes} 
-          {...listeners} 
-          className="cursor-move flex items-center"
+          {...listeners}
+          className="cursor-move"
         >
-          <GripVertical className="mr-2 text-muted-foreground" />
-          {trabajo.order}
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
       </TableCell>
       <TableCell>{trabajo.name}</TableCell>
@@ -64,36 +70,18 @@ export function SortableRow({ trabajo, onEdit, onDelete, onDuplicate }: Sortable
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem 
-              onSelect={(e) => {
-                e.preventDefault();
-                onEdit();
-              }}
-              className="cursor-pointer"
-            >
+          <DropdownMenuContent>
+            <DropdownMenuItem onSelect={onEdit}>
               <Pencil className="mr-2 h-4 w-4" />
               Editar
             </DropdownMenuItem>
-            {onDuplicate && (
-              <DropdownMenuItem 
-                onSelect={(e) => {
-                  e.preventDefault();
-                  onDuplicate();
-                }}
-                className="cursor-pointer"
-              >
+            {onDuplicate && isDuplicateActionEnabled && (
+              <DropdownMenuItem onSelect={onDuplicate}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicar
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem 
-              onSelect={(e) => {
-                e.preventDefault();
-                onDelete();
-              }}
-              className="cursor-pointer text-destructive focus:text-destructive"
-            >
+            <DropdownMenuItem onSelect={onDelete} className="text-destructive">
               <Trash2 className="mr-2 h-4 w-4" />
               Eliminar
             </DropdownMenuItem>

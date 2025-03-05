@@ -19,7 +19,6 @@ import {
   DragEndEvent
 } from '@dnd-kit/core';
 import { 
-  arrayMove, 
   sortableKeyboardCoordinates, 
   rectSortingStrategy, 
   SortableContext 
@@ -64,8 +63,8 @@ export default function TareasConfiguracion() {
     
     if (active.id !== over?.id) {
       // Find the indices of the dragged and target items
-      const oldIndex = trabajos.findIndex(trabajo => trabajo._id === active.id);
-      const newIndex = trabajos.findIndex(trabajo => trabajo._id === over?.id);
+      const oldIndex = trabajos.findIndex(trabajo => trabajo._id.toString() === active.id);
+      const newIndex = trabajos.findIndex(trabajo => trabajo._id.toString() === over?.id);
 
       // Create a new array with the item moved to its new position
       const reorderedTrabajos = [...trabajos];
@@ -73,10 +72,14 @@ export default function TareasConfiguracion() {
       reorderedTrabajos.splice(newIndex, 0, removedItem);
 
       // Recalculate orders based on new array position
-      const updatedTrabajos = reorderedTrabajos.map((trabajo, index) => ({
-        ...trabajo,
-        order: index + 1
-      }));
+      const updatedTrabajos = reorderedTrabajos.map((trabajo, index): Trabajo => {
+        // Convert Mongoose document to plain object
+        const plainTrabajo = trabajo.toObject ? trabajo.toObject() : trabajo;
+        return {
+          ...plainTrabajo,
+          order: index + 1
+        };
+      });
 
       // Optimistic UI update
       setTrabajos(updatedTrabajos);
@@ -89,7 +92,7 @@ export default function TareasConfiguracion() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(updatedTrabajos.map((trabajo) => ({
-            id: trabajo._id,
+            id: trabajo._id.toString(),
             order: trabajo.order
           })))
         });
@@ -99,7 +102,8 @@ export default function TareasConfiguracion() {
         }
 
         toast.success('Orden de trabajos actualizado');
-      } catch (error) {
+      } catch (_error) {
+        console.error(_error);
         toast.error('No se pudo actualizar el orden');
         // Revert optimistic update
         fetchTrabajos();
@@ -129,30 +133,39 @@ export default function TareasConfiguracion() {
   // Duplicate trabajo
   const handleDuplicateTrabajo = async (trabajo: Trabajo) => {
     try {
-      // Create a new trabajo with the same details, excluding _id and order
-      const { _id, order, ...trabajoToDuplicate } = trabajo;
-      
+      // Explicitly remove and ignore _id, spread remaining properties
+      const { _id, ...baseTrabajoData } = trabajo;
+      void _id; // Explicitly mark _id as used to suppress warning
+
+      // Prepare duplicated trabajo with incremented order and modified name
+      const duplicatedTrabajo = {
+        ...baseTrabajoData,
+        name: `${baseTrabajoData.name} (Copia)`,
+        order: trabajos.length + 1
+      };
+
       const response = await fetch('/api/trabajos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...trabajoToDuplicate,
-          name: `${trabajoToDuplicate.name} (Copia)`,
-          order: trabajos.length + 1
-        })
+        body: JSON.stringify(duplicatedTrabajo)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to duplicate trabajo');
+        const errorBody = await response.text();
+        throw new Error(`Failed to duplicate trabajo: ${errorBody}`);
       }
 
-      toast.success('Trabajo duplicado');
+      toast.success('Trabajo duplicado exitosamente');
       fetchTrabajos();
     } catch (error) {
-      toast.error('No se pudo duplicar el trabajo');
-      console.error(error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Error desconocido al duplicar el trabajo';
+      
+      toast.error(errorMessage);
+      console.error('Duplicate trabajo error:', error);
     }
   };
 
@@ -164,10 +177,18 @@ export default function TareasConfiguracion() {
     })
   );
 
-  // Initial fetch
   useEffect(() => {
     fetchTrabajos();
   }, []);
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <p>Cargando trabajos...</p>
+      </div>
+    );
+  }
 
   // Open dialog for editing
   const handleEditTrabajo = (trabajo: Trabajo) => {
@@ -196,7 +217,7 @@ export default function TareasConfiguracion() {
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
         <SortableContext 
-          items={trabajos.map(trabajo => trabajo._id)} 
+          items={trabajos.map(trabajo => trabajo._id.toString() as unknown as string)} 
           strategy={rectSortingStrategy}
         >
           <Table>
@@ -211,10 +232,10 @@ export default function TareasConfiguracion() {
             <TableBody>
               {trabajos.map((trabajo) => (
                 <SortableRow 
-                  key={trabajo._id} 
+                  key={trabajo._id.toString()} 
                   trabajo={trabajo}
                   onEdit={() => handleEditTrabajo(trabajo)}
-                  onDelete={() => handleDeleteTrabajo(trabajo._id)}
+                  onDelete={() => handleDeleteTrabajo(trabajo._id.toString())}
                   onDuplicate={() => handleDuplicateTrabajo(trabajo)}
                   isDuplicateActionEnabled={true}
                 />
