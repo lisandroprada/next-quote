@@ -44,6 +44,15 @@ const navLinks: NavItem[] = [
       { href: '/calendar', label: 'Calendar', icon: CalendarIcon },
     ],
   },
+  {
+    label: 'Proyectos',
+    icon: Bars3Icon,
+    submenu: [
+      { href: '/proyectos/presupuesto', label: 'Presupuesto', icon: DocumentTextIcon },
+      { href: '/proyectos/configuracion', label: 'Configuración', icon: Bars3Icon },
+      { href: '/proyectos/configuracion/tareas', label: 'Tareas', icon: DocumentTextIcon },
+    ],
+  },
   { label: 'Navigation', icon: Bars3Icon },
 ];
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import {dbConnect} from '@/lib/mongodb';
 import Quote from '@/models/Quote';
 
 export async function GET(
